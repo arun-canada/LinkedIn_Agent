@@ -1,0 +1,46 @@
+rss_feeds:
+  - name: NVIDIA Robotics Blog
+    url: https://blogs.nvidia.com/blog/category/robotics/feed/
+  - name: ROS News
+    url: https://www.ros.org/news/rss.xml
+  - name: IEEE Spectrum Robotics
+    url: https://spectrum.ieee.org/rss/robotics/fulltext
+  - name: The Robot Report
+    url: https://www.therobotreport.com/feed/
+
+newsletter:
+  enabled: true
+  imap_host: "imap.mail.yahoo.com"
+  imap_port: 993
+  folder: "INBOX"
+  days_back: 2
+  from_allowlist:
+    - "nvidia"
+    - "ieee"
+    - "therobotreport"
+    - "ros.org"
+  subject_keywords:
+    - "robotics"
+    - "autonomous"
+    - "simulation"
+    - "digital twin"
+    - "validation"
+    - "verification"
+
+topics:
+  primary:
+    - "simulation"
+    - "automation"
+    - "validation"
+    - "verification"
+    - "testing"
+    - "digital twin"
+    - "autonomy"
+    - "robotics"
+
+selection:
+  max_items: 8
+  max_posts: 3
+
+output:
+  dir: "output"

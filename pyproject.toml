@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robotics-daily"
+version = "0.1.0"
+description = "Daily autonomy/robotics social draft generator"
+requires-python = ">=3.10"
+dependencies = [
+  "beautifulsoup4==4.12.3",
+  "feedparser==6.0.11",
+  "pydantic==2.8.2",
+  "PyYAML==6.0.2",
+  "requests==2.32.3",
+  "trafilatura==1.12.2",
+]
+
+[project.scripts]
+robotics_daily = "robotics_daily.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
