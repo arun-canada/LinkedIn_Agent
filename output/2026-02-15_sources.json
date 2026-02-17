@@ -1,0 +1,114 @@
+[
+  {
+    "id": "f44d52971299198141bf62db2d0e9110",
+    "title": "Proposal: Reproducible actuator-boundary safety (SSC + conformance harness)",
+    "url": "https://discourse.openrobotics.org/t/proposal-reproducible-actuator-boundary-safety-ssc-conformance-harness/52510",
+    "published_at": "2026-02-13T18:55:33+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "Hi all \u2014 I\u2019m looking for feedback on a design question around actuator-boundary safety in ROS-based systems.\nOnce a planner (or LLM-backed stack) can issue actuator commands, failures become motion. Most safety work in ROS focuses on higher layers (planning, perception, behavior trees), but there\u2019s less shared infrastructure around deterministic enforcement at the actuator interface itself.\nI\u2019m prototyping a small hardware interposer plus a draft \u201cSafety Contract\u201d spec (SSC v1.1) with three components:\n-\nA machine-readable contract defining caps (velocity / acceleration / effort), modes (development vs field), and stop semantics\n-\nA conformance harness (including malformed traffic handling + fuzzing / anti-wedge tests)\n-\n\u201cEvidence packs\u201d (machine-readable logs with wedge counts, latency distributions, and verifier tooling)\nThe goal is narrow:\nNot \u201cthis makes robots safe.\u201d\nBut: if someone claims actuator-boundary enforcement works, there should be a reproducible way to test and audit that claim.\nSome concrete design questions I\u2019m unsure about:\n\u2022 Does ROS 2 currently have a standard place where actuator-boundary invariants should live?\n\u2022 Should this layer sit at the driver level, as a node wrapper, or outside ROS entirely?\n\u2022 What would make a conformance harness credible to you?\n\u2022 Are there prior art efforts I should be aware of?\nI\u2019m happy to share more technical detail if useful. Mostly interested in whether this layer is actually leverageful or if I\u2019m solving the wrong problem.",
+    "origin": "Open Robotics Discourse (Latest topics)",
+    "score": 11.169805007311552,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "7b10d8bc8946fa466236d6cf5946ccab",
+    "title": "The First Large-Scale Agentic Skill Library for Robotics, Computer Vision, and Physical AI",
+    "url": "https://discourse.openrobotics.org/t/the-first-large-scale-agentic-skill-library-for-robotics-computer-vision-and-physical-ai/52440",
+    "published_at": "2026-02-10T18:19:12+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "Physical AI is exploding\nWe are building the first large-scale Agentic Skill Library for Robotics, Computer Vision, and Physical AI.\nInstead of betting on a single massive end-to-end policy, we believe the future of Physical AI will be built on reusable Skills, often known as Robotic Movement Primitives. To this end, the Skill library provides a massive atomic skills for robotics and computer vision, covering:\n- 3D perception including detection, registration, filtering and clustering\n- 2D perception including image processing, detection, and segmentation\n- Synthetic data generation\n- Model training tools\n- Motion planning, kinematics, and control\n- Physical AI agents (LLM agents and VLM agents)\n- Vision-Language Action Models (VLAs)\n- RL policies\nOn top of this low-level Skill Library sits a Physical AI Agentic layer for long-horizon reasoning. These Physical AI Agents, typically powered by Large Language Models (LLMs) or Vision Language Models (VLMs), are responsible for interpreting high-level text & image prompts and turning them into real-time task plans.\nThe library is designed so that roboticists, computer vision engineers, and hobbyists exploring Physical AI can access these capabilities without spending time integrating fragmented libraries, letting you focus on building solutions instead of patching together incompatible components.\nTo learn more (non-technical blog): https://medium.com/@telekinesis-ai/creating-an-agentic-skill-library-for-robotics-computer-vision-and-physical-ai-1f3ecfbbbca0\nResources\nWe\u2019ve also just opened early access to our first modules and we\u2019re looking for a small number of beta users who are willing to stress-test the approach and give honest feedback before we go further.\nIf you\u2019d like to explore:\n- Docs: https://docs.telekinesis.ai/\n- Code examples: https://github.com/telekinesis-ai/telekinesis-examples\nJoin the Telekinesis Discord community:\nWe\u2019re trying to build this together with a community of engineers, researchers, and buil",
+    "origin": "Open Robotics Discourse (Latest topics)",
+    "score": 11.085938391107616,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "8b564b9cccf4f1cde29df8901dc874ee",
+    "title": "Cheers to AI: ADAM Robot Bartender Makes Drinks at Vegas Golden Knights Game",
+    "url": "https://blogs.nvidia.com/blog/adam-robot-vegas-golden-knights-thor",
+    "published_at": "2025-12-12T16:00:04+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "In Las Vegas\u2019s T-Mobile Arena, fans of the Golden Knights are getting more than just hockey \u2014 they\u2019re getting a taste of the future. ADAM, a robot developed with NVIDIA Isaac libraries, is pouring drinks and turning heads in one of the NHL\u2019s most exciting venues.\nADAM, short for Automated Dual Arm Mixologist, was developed by Las-Vegas based Richtech Robotics. It\u2019s not just a novelty \u2014 it\u2019s a solution to real-world challenges in hospitality: labor shortages and demands for unique customer experiences.\n\u201cThe hospitality industry faces significant labor challenges, and ADAM is our answer to meeting those needs while elevating the customer experience,\u201d said Matt Casella, president of Richtech Robotics. \u201cWith NVIDIA\u2019s Isaac platform, we\u2019ve developed a solution that\u2019s scalable, consistent, and frankly, creates memorable moments for fans. The response at T-Mobile Arena has been phenomenal\u2014people love interacting with ADAM.\u201d\nLearning to Serve Drinks in Simulation\nBefore ADAM ever poured a drink, it trained in a virtual bar. Richtech used NVIDIA Isaac Sim, an open-source, reference robotic simulation framework built on NVIDIA Omniverse, to build a high-fidelity and physically accurate simulation of ADAM\u2019s workstation, complete with cups, utensils and lighting variations. The team generated synthetic data to teach ADAM how to recognize objects even in tricky conditions like glare or reflection.\nADAM\u2019s skills such as pouring and shaking were refined in simulation using Isaac Lab, NVIDIA\u2019s open source robot learning framework. The result: a robot that doesn\u2019t just follow instructions \u2014 it adapts to its environment with precision.\nRunning Real-Time AI at the Edge With Jetson\nADAM runs on NVIDIA Jetson AGX Orin, the powerful edge AI platform capable of 275 TOPS of compute. Using Isaac ROS 2 libraries, ADAM captures camera feeds, detects objects and calibrates the workspace in real time. ADAM\u2019s perception stack \u2014 built with TAO Toolkit and optimized with TensorRT \u2014 enables it to i",
+    "origin": "NVIDIA Robotics Blog",
+    "score": 10.690182099781936,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "10b1d5da35ff0bde75e80f2882de7185",
+    "title": "Running high-fidelity O3DE simulations in AWS RoboMaker",
+    "url": "https://aws.amazon.com/blogs/robotics/running-high-fidelity-o3de-simulations-in-aws-robomaker",
+    "published_at": "2023-08-14T23:50:40+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "AWS Robotics Blog\nRunning high-fidelity O3DE simulations in AWS RoboMaker\nDeveloping autonomous robots is hard. Because it requires both hardware and software to be developed, integrated and tested, doing so in a physical environment is difficult and costly. Using simulations, robot developers can test their code quickly, iterating many times before finally deploying software to the hardware for testing in the real world. Having a high-fidelity simulator allows developers to test vision, perception, and recognition systems for their robots with high confidence. Open 3D Engine (O3DE) is a community driven, open source simulator that provides that level of high-fidelity realistic rendering needed for robotic simulations.\nAn Introduction to O3DE\nO3DE is a 3D engine capable of creating and running realistic 3D worlds for gaming. To achieve photo-realistic rendering, it uses a configurable, multi-threaded rendering engine known as Atom, which supports features such as physically based rendering (PBR), ray-tracing, post-processing, and forward + rendering. O3DE also is capable of simulating real-world physics through its Nvidia PhysX based physics engine.\nO3DE is based on a modular system architecture known as the Gems system. This allows you to select and configure any number of packages (Gems) for a project depending on its needs. Gems can come from the O3DE project itself, third-party providers, or custom made. With the recent addition of the ROS 2 gem, this enables O3DE to work with robotics simulations that use the Robotic Operating System (ROS) to develop robots. By providing scene rendering and physics modeling, robotics developers can test and train perception models that closely resemble the real world in a pure simulation environment.\nIn order to speed up the development cycle, developers can scale out their simulations by running them in parallel in the cloud. Being able to run simulations in the cloud adds performance, cost effectiveness, and scalability to th",
+    "origin": "AWS Robotics Blog",
+    "score": 10.45,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "630a9621dd09fa50e634187522f8fbbb",
+    "title": "Build headless robotic simulations with AWS Batch",
+    "url": "https://aws.amazon.com/blogs/robotics/build-headless-robotic-simulations-with-aws-batch",
+    "published_at": "2022-11-23T17:04:46+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "AWS Robotics Blog\nBuild headless robotic simulations with AWS Batch\nIntroduction\nHeadless robotic simulations with AWS Batch allow robot developers to increase their velocity by running their code through thousands of scenarios and iterating before moving onto physical device testing. The real-world environments and situations a robot can find itself in are nearly endless. What\u2019s worse, it is time consuming and costly to deploy and test every scenario on physical robots. AWS Batch is a service that gives robot developers an easy way to run batch robotics simulation at massive scale with custom control of what compute types to use.\nNote that AWS Batch is best used for running headless batch simulations at scale. If you are looking for interactive simulations with a GUI, we recommend AWS RoboMaker simulation.\nOverview\nIn this blog, you will create an AWS Batch compute environment and job to run your containerized robot and simulation applications. This blog takes the Amazon CloudWatch robot monitoring sample originally built with AWS RoboMaker and updates it to show how you can accomplish the task with AWS Batch instead. The sample runs a robot navigation test and sends data to Amazon CloudWatch to monitor the robot\u2019s position and speed.\nWe will go through the following steps:\n- Prepare robot and simulation containers.\n- Create a Dockerfile to install docker-compose and the AWS Command Line Interface (AWS CLI).\n- Build and push the container image to Amazon Elastic Container Registry (Amazon ECR).\n- Create a docker-compose.yaml file and upload it to Amazon Simple Storage Service (Amazon S3).\n- Set up permissions for your AWS Batch jobs and robot and simulation applications.\n- Create an AWS Batch compute environment, job queue, job definition, and job using the AWS Batch Wizard.\n- View the logs in Amazon CloudWatch.\nPrerequisites:\nThe following are requirements to follow along with this blog:\n- An AWS account with permissions to AWS Identity and Access Management (AWS ",
+    "origin": "AWS Robotics Blog",
+    "score": 9.32,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "c0f7047fa57736530c482d624f593e1a",
+    "title": "Beyond one-on-one: Authoring, simulating, and testing dynamic human-AI group conversations",
+    "url": "https://research.google/blog/beyond-one-on-one-authoring-simulating-and-testing-dynamic-human-ai-group-conversations",
+    "published_at": "2026-02-10T18:30:00+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "Beyond one-on-one: Authoring, simulating, and testing dynamic human-AI group conversations\nFebruary 10, 2026\nErzhen Hu, Student Researcher, and Ruofei Du, Interactive Perception & Graphics Lead, Google XR\nDialogLab is a research prototype that provides a unified interface to configure conversational scenes, define agent personas, manage group structures, specify turn-taking rules, and orchestrate transitions between scripted narratives and improvisation.\nQuick links\nConversational AI has fundamentally reshaped how we interact with technology. While one-on-one interactions with large language models (LLMs) have seen significant advances, they rarely capture the full complexity of human communication. Many real-world dialogues, including team meetings, family dinners, or classroom lessons, are inherently multi-party. These interactions involve fluid turn-taking, shifting roles, and dynamic interruptions.\nFor designers and developers, simulating natural and engaging multi-party conversations has historically required a trade-off: settle for the rigidity of scripted interaction or accept the unpredictability of purely generative models. To bridge this gap, we need tools that blend the structural predictability of a script with the spontaneous, improvisational nature of human conversation.\nTo address this need, we introduce DialogLab, presented at ACM UIST 2025, an open-source prototyping framework designed to author, simulate, and test dynamic human-AI group conversations. DialogLab provides a unified interface to manage multi-party dialogue complexity, handling everything from defining agent personas to orchestrating complex turn-taking dynamics. Through integrating real-time improvisation with structured scripting, this framework enables developers to test conversations ranging from a structured Q&A session to a free-flowing creative brainstorm. Our evaluations with 14 end users or domain experts validate that DialogLab supports efficient iteration and realistic, adap",
+    "origin": "Google Research Blog",
+    "score": 9.286724725258985,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "b9e7d2cc6fd7120c4ca6e407f8a484a7",
+    "title": "At NeurIPS, NVIDIA Advances Open Model Development for Digital and Physical AI",
+    "url": "https://blogs.nvidia.com/blog/neurips-open-source-digital-physical-ai",
+    "published_at": "2025-12-01T17:00:48+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "Researchers worldwide rely on open-source technologies as the foundation of their work. To equip the community with the latest advancements in digital and physical AI, NVIDIA is further expanding its collection of open AI models, datasets and tools \u2014 with potential applications in virtually every research field.\nAt NeurIPS, one of the world\u2019s top AI conferences, NVIDIA is unveiling open physical AI models and tools to support research, including Alpamayo-R1, the world\u2019s first industry-scale open reasoning vision language action (VLA) model for autonomous driving. In digital AI, NVIDIA is releasing new models and datasets for speech and AI safety.\nNVIDIA researchers are presenting over 70 papers, talks and workshops at the conference, sharing innovative projects that span AI reasoning, medical research, autonomous vehicle (AV) development and more.\nThese initiatives deepen NVIDIA\u2019s commitment to open source \u2014 an effort recognized by a new Openness Index from Artificial Analysis, an independent organization that benchmarks AI. The Artificial Analysis Open Index rates the NVIDIA Nemotron family of open technologies for frontier AI development among the most open in the AI ecosystem based on the permissibility of the model licenses, data transparency and availability of technical details.\nNVIDIA DRIVE Alpamayo-R1 Opens New Research Frontier for Autonomous Driving\nNVIDIA DRIVE Alpamayo-R1 (AR1), the world\u2019s first open reasoning VLA model for AV research, integrates chain-of-thought AI reasoning with path planning \u2014 a component critical for advancing AV safety in complex road scenarios and enabling level 4 autonomy.\nWhile previous iterations of self-driving models struggled with nuanced situations \u2014 a pedestrian-heavy intersection, an upcoming lane closure or a double-parked vehicle in a bike lane \u2014 reasoning gives autonomous vehicles the common sense to drive more like humans do.\nAR1 accomplishes this by breaking down a scenario and reasoning through each step. It consid",
+    "origin": "NVIDIA Robotics Blog",
+    "score": 8.590039864165346,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  },
+  {
+    "id": "1f34622bc2e78c51a9c5b5946434c900",
+    "title": "Multimodal reinforcement learning with agentic verifier for AI agents",
+    "url": "https://www.microsoft.com/en-us/research/blog/multimodal-reinforcement-learning-with-agentic-verifier-for-ai-agents",
+    "published_at": "2026-01-20T17:00:00+00:00",
+    "source_type": "rss",
+    "raw_text_excerpt": "At a glance\n- Today\u2019s multimodal AI systems can give answers that sound right but may not be grounded in what they actually observe over time, leading to unpredictable errors and safety risks in real-world settings.\n- Argos is a verification framework for multimodal reinforcement learning that trains models by rewarding not just correct answers, but correct answers grounded in visual and temporal evidence, using automated verification rather than human labeling. It selects the appropriate specialized tools for each answer based on what needs to be verified.\n- Models trained with Argos show stronger spatial reasoning, far fewer visual hallucinations, more stable learning dynamics, and better performance on robotics and real-world tasks while requiring fewer training samples.\nOver the past few years, AI systems have become much better at discerning images, generating language, and performing tasks within physical and virtual environments. Yet they still fail in ways that are hard to predict and even harder to fix. A robot might try to grasp a tool when the object is visibly blocked, or a visual assistant integrated into smart glasses might describe objects that aren\u2019t actually present.\nThese errors often arise because today\u2019s multimodal agents are trained to generate outputs that are plausible rather than grounded in the actual information they receive from their environment. As a result, a model\u2019s output can seem correct while relying on incorrect information. As AI systems are increasingly used to navigate 3D spaces and make decisions in real-world settings, this gap can be a safety and reliability concern.\nTo tackle this challenge, we posed the question: How can we train AI agents to generate correct answers and take appropriate actions for the right reasons so that their behavior is reliable even as the environment or tasks change?\nSpotlight: AI-POWERED EXPERIENCE\nArgos represents a novel answer to this challenge. It\u2019s an agentic verification framework designed to",
+    "origin": "Microsoft Research Blog",
+    "score": 8.530817739243261,
+    "summary_bullets": [
+      "Key update captured from source."
+    ],
+    "why_it_matters": "Potential relevance for simulation, automation, or validation workflows."
+  }
+]

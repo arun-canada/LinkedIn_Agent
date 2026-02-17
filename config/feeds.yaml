@@ -1,46 +1,99 @@
 rss_feeds:
-  - name: NVIDIA Robotics Blog
-    url: https://blogs.nvidia.com/blog/category/robotics/feed/
-  - name: ROS News
-    url: https://www.ros.org/news/rss.xml
-  - name: IEEE Spectrum Robotics
-    url: https://spectrum.ieee.org/rss/robotics/fulltext
-  - name: The Robot Report
-    url: https://www.therobotreport.com/feed/
+- name: NVIDIA Robotics Blog
+  url: https://blogs.nvidia.com/blog/category/robotics/feed/
+- name: ROS News
+  url: https://www.ros.org/news/rss.xml
+- name: IEEE Spectrum Robotics
+  url: https://spectrum.ieee.org/feeds/topic/robotics.rss
+- name: The Robot Report
+  url: https://www.therobotreport.com/feed/
+- name: Open Robotics Discourse (Hot topics)
+  url: https://discourse.openrobotics.org/hot.rss
+- name: Open Robotics Discourse (Latest topics)
+  url: https://discourse.openrobotics.org/latest.rss
+- name: AWS Robotics Blog
+  url: https://aws.amazon.com/blogs/robotics/feed/
+- name: Google Research Blog
+  url: https://research.google/blog/rss/
+- name: Microsoft Research Blog
+  url: https://www.microsoft.com/en-us/research/feed/
+- name: arXiv — Robotics (cs.RO)
+  url: https://rss.arxiv.org/rss/cs.RO
+- name: arXiv — Systems and Control (eess.SY)
+  url: https://rss.arxiv.org/rss/eess.SY
+- name: arXiv — Image & Video Processing (eess.IV)
+  url: https://rss.arxiv.org/rss/eess.IV
 
 newsletter:
   enabled: true
-  imap_host: "imap.mail.yahoo.com"
+  imap_host: imap.mail.yahoo.com
   imap_port: 993
-  folder: "INBOX"
+  folder: INBOX
   days_back: 2
   from_allowlist:
-    - "nvidia"
-    - "ieee"
-    - "therobotreport"
-    - "ros.org"
+  - therobotreport.com
+  - wtwhmedia.com
+  - spectrum.ieee.org
+  - ieee.org
+  - robohub.org
+  - list-manage.com
+  - ros.org
+  - openrobotics.org
+  - discourse.openrobotics.org
+  - nvidia.com
+  - blogs.nvidia.com
+  - developer.nvidia.com
+  - aws.amazon.com
+  - research.google
+  - microsoft.com
+  - waymo.com
+  - robotnewsletter.co
   subject_keywords:
-    - "robotics"
-    - "autonomous"
-    - "simulation"
-    - "digital twin"
-    - "validation"
-    - "verification"
+  - autonomous
+  - autonomy
+  - autoware
+  - digital twin
+  - edge ai
+  - gazebo
+  - isaac
+  - jetson
+  - lidar
+  - open-scenario
+  - openscenario
+  - perception
+  - robotics
+  - ros 2
+  - ros2
+  - safety
+  - sensor fusion
+  - simulation
+  - sotif
+  - testing
+  - validation
+  - verification
+  - iso 26262
 
 topics:
   primary:
-    - "simulation"
-    - "automation"
-    - "validation"
-    - "verification"
-    - "testing"
-    - "digital twin"
-    - "autonomy"
-    - "robotics"
+  - autonomy
+  - autoware
+  - digital twin
+  - edge ai
+  - gazebo
+  - iso 26262
+  - robotics
+  - ros 2
+  - safety
+  - sensor fusion
+  - simulation
+  - sotif
+  - testing
+  - validation
+  - verification
 
 selection:
   max_items: 8
   max_posts: 3
 
 output:
-  dir: "output"
+  dir: output

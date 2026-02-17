@@ -9,8 +9,8 @@ import requests
 from .models import SourceItem
 
 
-OPENAI_URL = "https://api.openai.com/v1/responses"
-MODEL = "gpt-4.1-mini"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+MODEL = "gpt-4o-mini"
 
 
 def _call_openai(input_messages: list[dict[str, Any]]) -> str:
@@ -18,16 +18,16 @@ def _call_openai(input_messages: list[dict[str, Any]]) -> str:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is required")
 
-    payload = {"model": MODEL, "input": input_messages}
+    payload = {"model": MODEL, "messages": input_messages}
     response = requests.post(
         OPENAI_URL,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        data=json.dumps(payload),
+        json=payload,
         timeout=45,
     )
     response.raise_for_status()
     data = response.json()
-    return data.get("output_text", "").strip()
+    return data["choices"][0]["message"]["content"].strip()
 
 
 def summarize_items(items: list[SourceItem]) -> list[SourceItem]:

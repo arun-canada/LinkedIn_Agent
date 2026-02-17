@@ -5,6 +5,12 @@ import logging
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load environment variables before importing modules that use requests
+# override=True ensures .env values take precedence over system variables
+load_dotenv(override=True)
+
 from .config import load_config
 from .dedupe import CacheDB, canonicalize_url, content_hash
 from .extract import enrich_source_excerpt
