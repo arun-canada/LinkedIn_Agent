@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import feedparser
 
@@ -10,6 +10,8 @@ from .config import RSSFeed
 from .models import SourceItem
 
 logger = logging.getLogger(__name__)
+
+RSS_DAYS_BACK = 7
 
 
 def _parse_date(entry: feedparser.FeedParserDict) -> datetime:
@@ -21,6 +23,7 @@ def _parse_date(entry: feedparser.FeedParserDict) -> datetime:
 
 def fetch_rss_sources(feeds: list[RSSFeed]) -> list[SourceItem]:
     items: list[SourceItem] = []
+    cutoff = datetime.now(timezone.utc) - timedelta(days=RSS_DAYS_BACK)
     for feed in feeds:
         try:
             parsed = feedparser.parse(feed.url)
@@ -30,13 +33,16 @@ def fetch_rss_sources(feeds: list[RSSFeed]) -> list[SourceItem]:
                 summary = (entry.get("summary") or "").strip()
                 if not url:
                     continue
+                published = _parse_date(entry)
+                if published < cutoff:
+                    continue
                 item_id = hashlib.md5(f"rss:{url}".encode("utf-8")).hexdigest()  # nosec B324
                 items.append(
                     SourceItem(
                         id=item_id,
                         title=title,
                         url=url,
-                        published_at=_parse_date(entry),
+                        published_at=published,
                         source_type="rss",
                         raw_text_excerpt=summary,
                         origin=feed.name,

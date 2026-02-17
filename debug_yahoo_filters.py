@@ -32,8 +32,20 @@ def _subject_match(subject: str, keywords: list[str]) -> bool:
     return any(k.lower() in sub for k in keywords)
 
 # Config from feeds.yaml
-from_allowlist = ["nvidia", "Weekly Robotics", "Robotics 247","ros.org"]
-subject_keywords = ["robotics", "autonomous", "simulation", "digital twin", "validation", "verification"]
+from_allowlist = [
+    "therobotreport.com", "wtwhmedia.com", "spectrum.ieee.org", "ieee.org",
+    "robohub.org", "list-manage.com", "ros.org", "openrobotics.org",
+    "discourse.openrobotics.org", "nvidia.com", "blogs.nvidia.com",
+    "developer.nvidia.com", "aws.amazon.com", "research.google",
+    "microsoft.com", "waymo.com", "weeklyrobotics.com",
+    "robotnewsletter.curatedmail.co", "therundown.ai", "Robotics 247"
+]
+subject_keywords = [
+    "autonomous", "autonomy", "autoware", "digital twin", "edge ai",
+    "gazebo", "isaac", "jetson", "lidar", "open-scenario", "openscenario",
+    "perception", "robotics", "ros 2", "ros2", "safety", "sensor fusion",
+    "simulation", "sotif", "testing", "validation", "verification", "iso 26262"
+]
 days_back = 2
 
 email_addr = os.environ.get("YAHOO_EMAIL")

@@ -9,25 +9,117 @@ import requests
 from .models import SourceItem
 
 
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-MODEL = "gpt-4o-mini"
+def _call_llm(input_messages: list[dict[str, Any]]) -> str:
+    """Call LLM API (OpenAI or local model with OpenAI-compatible API)"""
 
+    # Get provider selection - REQUIRED, no defaults
+    provider = os.environ.get("LLM_PROVIDER")
+    if not provider:
+        raise RuntimeError(
+            "LLM_PROVIDER is not set in .env file!\n"
+            "Please set LLM_PROVIDER to either 'openai' or 'local'"
+        )
 
-def _call_openai(input_messages: list[dict[str, Any]]) -> str:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is required")
+    provider = provider.lower()
 
-    payload = {"model": MODEL, "messages": input_messages}
-    response = requests.post(
-        OPENAI_URL,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=45,
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data["choices"][0]["message"]["content"].strip()
+    if provider == "local":
+        # Local model configuration - all required
+        model = os.environ.get("LOCAL_MODEL")
+        if not model:
+            raise RuntimeError(
+                "LOCAL_MODEL is not set in .env file!\n"
+                "Please set LOCAL_MODEL (e.g., 'llama3.2', 'mistral', etc.)"
+            )
+
+        base_url = os.environ.get("LOCAL_BASE_URL")
+        if not base_url:
+            raise RuntimeError(
+                "LOCAL_BASE_URL is not set in .env file!\n"
+                "Please set LOCAL_BASE_URL (e.g., 'http://localhost:11434/v1' for Ollama)"
+            )
+
+        api_key = os.environ.get("LOCAL_API_KEY", "not-needed")
+        endpoint = f"{base_url.rstrip('/')}/chat/completions"
+
+    elif provider == "openai":
+        # OpenAI configuration - all required
+        model = os.environ.get("OPENAI_MODEL")
+        if not model:
+            raise RuntimeError(
+                "OPENAI_MODEL is not set in .env file!\n"
+                "Please set OPENAI_MODEL (e.g., 'gpt-4o-mini', 'gpt-4o', etc.)"
+            )
+
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set in .env file!\n"
+                "Get your key from: https://platform.openai.com/api-keys"
+            )
+
+        base_url = "https://api.openai.com/v1"
+        endpoint = f"{base_url}/chat/completions"
+
+    else:
+        raise RuntimeError(
+            f"Invalid LLM_PROVIDER '{provider}' in .env file!\n"
+            "LLM_PROVIDER must be either 'openai' or 'local'"
+        )
+
+    # Standard OpenAI-compatible payload
+    payload = {
+        "model": model,
+        "messages": input_messages,
+        "temperature": 0.7,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    # Get timeout from env or use default
+    timeout = int(os.environ.get("LLM_TIMEOUT", "120"))
+
+    try:
+        response = requests.post(
+            endpoint,
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(
+            f"Failed to connect to LLM server at {endpoint}\n"
+            f"Provider: {provider}, Model: {model}\n"
+            f"Error: {e}\n"
+            f"Hint: Make sure your {provider} server is running!"
+        ) from e
+    except requests.exceptions.Timeout as e:
+        raise RuntimeError(
+            f"LLM request timed out after {timeout} seconds\n"
+            f"Provider: {provider}, Model: {model}\n"
+            f"Hint: Try a faster model or increase LLM_TIMEOUT in .env"
+        ) from e
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(
+            f"LLM API returned error: {response.status_code}\n"
+            f"Provider: {provider}, Model: {model}\n"
+            f"Response: {response.text}\n"
+            f"Hint: Check your API key and model name"
+        ) from e
+
+    try:
+        data = response.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except (KeyError, IndexError, ValueError) as e:
+        raise RuntimeError(
+            f"Unexpected response format from LLM API\n"
+            f"Provider: {provider}, Model: {model}\n"
+            f"Response: {response.text[:500]}\n"
+            f"Error: {e}"
+        ) from e
 
 
 def summarize_items(items: list[SourceItem]) -> list[SourceItem]:
@@ -39,11 +131,11 @@ def summarize_items(items: list[SourceItem]) -> list[SourceItem]:
             f"Title: {item.title}\nURL: {item.url}\nDate: {item.published_at.isoformat()}\n"
             f"Text:\n{item.raw_text_excerpt[:4000]}"
         )
-        out = _call_openai(
+        out = _call_llm(
             [
                 {
                     "role": "system",
-                    "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped summaries.",
+                    "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped summaries. Be concise and output only the requested JSON. Respond directly without internal reasoning or <think> blocks.",
                 },
                 {"role": "user", "content": prompt},
             ]
@@ -80,11 +172,11 @@ def generate_posts(items: list[SourceItem], max_posts: int = 3) -> str:
         "Separate each draft with '\n\n---\n\n'.\n"
         f"Sources:\n{json.dumps(serial, indent=2)}"
     )
-    return _call_openai(
+    return _call_llm(
         [
             {
                 "role": "system",
-                "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped posts.",
+                "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped posts. Respond directly without internal reasoning or <think> blocks.",
             },
             {"role": "user", "content": prompt},
         ]
