@@ -22,8 +22,8 @@ class NewsletterConfig(BaseModel):
     subject_keywords: list[str] = Field(default_factory=list)
 
 
-class TopicsConfig(BaseModel):
-    primary: list[str] = Field(default_factory=list)
+class RSSConfig(BaseModel):
+    days_back: int = 7
 
 
 class SelectionConfig(BaseModel):
@@ -37,8 +37,8 @@ class OutputConfig(BaseModel):
 
 class AppConfig(BaseModel):
     rss_feeds: list[RSSFeed] = Field(default_factory=list)
+    rss: RSSConfig = Field(default_factory=RSSConfig)
     newsletter: NewsletterConfig = Field(default_factory=NewsletterConfig)
-    topics: TopicsConfig = Field(default_factory=TopicsConfig)
     selection: SelectionConfig = Field(default_factory=SelectionConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
 

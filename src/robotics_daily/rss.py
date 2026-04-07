@@ -11,8 +11,6 @@ from .models import SourceItem
 
 logger = logging.getLogger(__name__)
 
-RSS_DAYS_BACK = 7
-
 
 def _parse_date(entry: feedparser.FeedParserDict) -> datetime:
     parsed = entry.get("published_parsed") or entry.get("updated_parsed")
@@ -21,9 +19,9 @@ def _parse_date(entry: feedparser.FeedParserDict) -> datetime:
     return datetime(*parsed[:6], tzinfo=timezone.utc)
 
 
-def fetch_rss_sources(feeds: list[RSSFeed]) -> list[SourceItem]:
+def fetch_rss_sources(feeds: list[RSSFeed], days_back: int = 7) -> list[SourceItem]:
     items: list[SourceItem] = []
-    cutoff = datetime.now(timezone.utc) - timedelta(days=RSS_DAYS_BACK)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
     for feed in feeds:
         try:
             parsed = feedparser.parse(feed.url)

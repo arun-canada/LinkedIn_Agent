@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import requests
@@ -122,62 +124,92 @@ def _call_llm(input_messages: list[dict[str, Any]]) -> str:
         ) from e
 
 
-def summarize_items(items: list[SourceItem]) -> list[SourceItem]:
-    summarized: list[SourceItem] = []
-    for item in items:
-        prompt = (
-            "Summarize this source into JSON with fields bullets (2-3 bullet strings) and why_it_matters (string). "
-            "Avoid precise numbers if uncertain.\n\n"
-            f"Title: {item.title}\nURL: {item.url}\nDate: {item.published_at.isoformat()}\n"
-            f"Text:\n{item.raw_text_excerpt[:4000]}"
-        )
-        out = _call_llm(
-            [
-                {
-                    "role": "system",
-                    "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped summaries. Be concise and output only the requested JSON. Respond directly without internal reasoning or <think> blocks.",
-                },
-                {"role": "user", "content": prompt},
-            ]
-        )
-        try:
-            parsed = json.loads(out)
-            item.summary_bullets = [str(x) for x in parsed.get("bullets", [])][:3]
-            item.why_it_matters = str(parsed.get("why_it_matters", "")).strip()
-        except Exception:
-            item.summary_bullets = ["Key update captured from source."]
-            item.why_it_matters = "Potential relevance for simulation, automation, or validation workflows."
-        summarized.append(item)
-    return summarized
+def _extract_json(text: str) -> dict:
+    """Parse JSON from LLM output, stripping markdown code fences if present."""
+    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    return json.loads(cleaned)
 
 
-def generate_posts(items: list[SourceItem], max_posts: int = 3) -> str:
-    serial = []
-    for i, item in enumerate(items, start=1):
-        serial.append(
+def _summarize_one(item: SourceItem) -> SourceItem:
+    """Summarize a single item via LLM. Returns the item with populated fields."""
+    prompt = (
+        "Summarize this source into JSON with three fields:\n"
+        "- bullets: 2-3 bullet strings summarizing the key points\n"
+        "- why_it_matters: one sentence on relevance to robotics/autonomy practitioners\n"
+        "- reflection: a 1-2 sentence first-person thought-provoking reflection from a "
+        "technical leader's perspective. Don't restate the summary — add strategic insight: "
+        "what this enables, where it falls short, the real question it raises, or what "
+        "practitioners should be paying attention to. Be opinionated.\n\n"
+        "Avoid precise numbers if uncertain.\n\n"
+        f"Title: {item.title}\nURL: {item.url}\nDate: {item.published_at.isoformat()}\n"
+        f"Text:\n{item.raw_text_excerpt[:4000]}"
+    )
+    out = _call_llm(
+        [
             {
-                "idx": i,
-                "title": item.title,
-                "url": item.url,
-                "date": item.published_at.date().isoformat(),
-                "bullets": item.summary_bullets,
-                "why_it_matters": item.why_it_matters,
-            }
-        )
+                "role": "system",
+                "content": (
+                    "You are a technical leader in robotics and autonomy who writes "
+                    "accurate, non-hyped analysis. You blend technical depth with strategic "
+                    "thinking. Be concise and output only the requested JSON. "
+                    "Respond directly without internal reasoning or <think> blocks."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+    )
+    try:
+        parsed = _extract_json(out)
+        item.summary_bullets = [str(x) for x in parsed.get("bullets", [])][:3]
+        item.why_it_matters = str(parsed.get("why_it_matters", "")).strip()
+        item.reflection = str(parsed.get("reflection", "")).strip()
+    except Exception:
+        item.summary_bullets = ["Key update captured from source."]
+        item.why_it_matters = "Potential relevance for simulation, automation, or validation workflows."
+        item.reflection = ""
+    return item
+
+
+def summarize_items(items: list[SourceItem]) -> list[SourceItem]:
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return list(pool.map(_summarize_one, items))
+
+
+def _generate_one(item: SourceItem) -> str:
+    """Generate a single LinkedIn post draft via LLM."""
+    reflection_ctx = ""
+    if item.reflection:
+        reflection_ctx = f"\nReflection (first-person insight): {item.reflection}"
 
     prompt = (
-        f"Create {max_posts} LinkedIn-style social media post drafts in markdown. "
-        "Focus on autonomy + robotics with strong relevance to simulation, automation, validation. "
-        "Include source links in each draft. Avoid hype and avoid precise numeric claims when uncertain. "
-        "Separate each draft with '\n\n---\n\n'.\n"
-        f"Sources:\n{json.dumps(serial, indent=2)}"
+        "Write a single LinkedIn post draft in markdown for this robotics/autonomy article. "
+        "Include the source link. Be accurate, non-hyped, and concise (2-4 sentences + hashtags). "
+        "Include a 'My take:' paragraph — a first-person, opinionated reflection from a "
+        "technical leader. It should be thought-provoking, not a restatement of the summary.\n\n"
+        f"Title: {item.title}\n"
+        f"URL: {item.url}\n"
+        f"Key points: {'; '.join(item.summary_bullets)}\n"
+        f"Why it matters: {item.why_it_matters}"
+        f"{reflection_ctx}"
     )
     return _call_llm(
         [
             {
                 "role": "system",
-                "content": "You are a technical writer for autonomy & robotics. Write accurate, non-hyped posts. Respond directly without internal reasoning or <think> blocks.",
+                "content": (
+                    "You are a technical leader in robotics and autonomy who writes "
+                    "accurate, non-hyped LinkedIn posts. You blend technical depth with "
+                    "strategic thinking. Respond directly without internal reasoning "
+                    "or <think> blocks."
+                ),
             },
             {"role": "user", "content": prompt},
         ]
     )
+
+
+def generate_posts(items: list[SourceItem], max_posts: int = 3) -> str:
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        drafts = list(pool.map(_generate_one, items[:max_posts]))
+    return "\n\n---\n\n".join(drafts)

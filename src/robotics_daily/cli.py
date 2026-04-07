@@ -7,89 +7,108 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load environment variables before importing modules that use requests
-# override=True ensures .env values take precedence over system variables
+# Load .env before importing any module that reads environment variables
 load_dotenv(override=True)
 
+from .agents import (
+    AgentContext,
+    ContentAgent,
+    FilterAgent,
+    IngestionAgent,
+    Pipeline,
+    ReviewAgent,
+    ScoringAgent,
+    StepConfig,
+)
 from .config import load_config
-from .dedupe import CacheDB, canonicalize_url, content_hash
-from .extract import enrich_source_excerpt
-from .llm import generate_posts, summarize_items
+from .dedupe import CacheDB
 from .render import write_outputs
-from .rss import fetch_rss_sources
-from .scoring import rank_items
-from .yahoo_imap import safe_fetch_newsletter_links
+from .notify import format_top_recommendations, generate_pdf, send_document, send_message
+from .bot import serve as _bot_serve
 
 
-def setup_logging() -> None:
+def setup_logging(debug: bool = False) -> None:
     Path("logs").mkdir(exist_ok=True)
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG if debug else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
-        handlers=[logging.FileHandler("logs/app.log", encoding="utf-8"), logging.StreamHandler()],
+        handlers=[
+            logging.FileHandler("logs/app.log", encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
     )
 
 
-
-
-def _fallback_posts(items):
-    chunks = ["## Draft 1\n", "Quick roundup from today in autonomy + robotics focused on simulation, automation, and validation:\n"]
-    for i, item in enumerate(items[:6], start=1):
-        chunks.append(f"- {item.title} ({item.url})")
-    chunks.append("\n#Robotics #Autonomy #Simulation #Automation #Validation")
-    return "\n".join(chunks)
-
-def run_command(config_path: str) -> int:
-    setup_logging()
-    logger = logging.getLogger(__name__)
+def run_command(
+    config_path: str,
+    debug: bool = False,
+    notify: bool = False,
+    top_n: int = 2,
+    send_pdf: bool = False,
+) -> int:
+    setup_logging(debug=debug)
 
     cfg = load_config(config_path)
-    cache = CacheDB("cache.db")
-
-    rss_items = fetch_rss_sources(cfg.rss_feeds)
-    mail_items = safe_fetch_newsletter_links(
-        cfg.newsletter,
-        os.environ.get("YAHOO_EMAIL"),
-        os.environ.get("YAHOO_APP_PASSWORD"),
+    ctx = AgentContext(
+        config=cfg,
+        cache=CacheDB("cache.db"),
+        output_dir=cfg.output.dir,
+        yahoo_email=os.environ.get("YAHOO_EMAIL"),
+        yahoo_password=os.environ.get("YAHOO_APP_PASSWORD"),
+        debug_mode=debug,
     )
-    all_items = rss_items + mail_items
-    logger.info("Fetched %d RSS items, %d newsletter-link items", len(rss_items), len(mail_items))
 
-    filtered = []
-    for item in all_items:
-        canonical = canonicalize_url(item.url)
-        excerpt = enrich_source_excerpt(canonical, item.raw_text_excerpt)
-        c_hash = content_hash(excerpt or item.title)
-        if cache.seen_recently(canonical, c_hash, days=30):
-            continue
-        item.url = canonical
-        item.raw_text_excerpt = excerpt
-        filtered.append((item, c_hash))
+    pipeline = Pipeline([
+        StepConfig(IngestionAgent(), critical=True),
+        FilterAgent(),
+        ScoringAgent(),
+        ContentAgent(),
+        ReviewAgent(),
+    ])
+    ctx = pipeline.run(ctx)
 
-    ranked = rank_items([i for i, _ in filtered], cfg.topics.primary, cfg.selection.max_items)
-    if not ranked:
-        logger.warning("No new ranked items found; generating fallback output files.")
-        posts_md = "No new high-relevance items found today."
-        write_outputs(cfg.output.dir, posts_md, [])
-        return 0
-
-    try:
-        summarized = summarize_items(ranked)
-        posts_md = generate_posts(summarized, max_posts=cfg.selection.max_posts)
-    except Exception as exc:
-        logger.exception("LLM generation failed, using local fallback draft: %s", exc)
-        summarized = ranked
-        posts_md = _fallback_posts(summarized)
-
-    posts_path, sources_path = write_outputs(cfg.output.dir, posts_md, summarized)
+    posts_path, sources_path = write_outputs(
+        cfg.output.dir,
+        ctx.posts_markdown or "No new high-relevance items found today.",
+        ctx.summarized_items or [],
+        ctx.recommendations,
+    )
     print(f"Generated: {posts_path}")
     print(f"Generated: {sources_path}")
 
-    hash_by_url = {i.url: h for i, h in filtered}
-    for item in summarized:
-        cache.mark_seen(item.url, hash_by_url.get(item.url, content_hash(item.raw_text_excerpt)))
+    if ctx.errors:
+        for err in ctx.errors:
+            print(f"[WARNING] {err}")
+
+    if notify:
+        _notify(ctx, posts_path, top_n=top_n, send_pdf=send_pdf)
 
     return 0
+
+
+def _notify(ctx, posts_path, *, top_n: int, send_pdf: bool) -> None:
+    log = logging.getLogger("robotics_daily")
+    try:
+        if send_pdf:
+            pdf_path = posts_path.with_suffix(".pdf")
+            generate_pdf(
+                ctx.posts_markdown or "",
+                ctx.recommendations or [],
+                pdf_path,
+            )
+            send_document(pdf_path, caption=f"Robotics Daily — {pdf_path.stem}")
+            log.info("Sent PDF via Telegram: %s", pdf_path.name)
+        else:
+            text = format_top_recommendations(
+                ctx.recommendations or [],
+                ctx.summarized_items or [],
+                top_n=top_n,
+            )
+            send_message(text)
+            log.info("Sent top-%d recommendations via Telegram", top_n)
+    except Exception as exc:
+        log.error("Telegram notification failed: %s", exc)
+        print(f"[WARNING] Telegram notification failed: {exc}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -97,6 +116,21 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     run_p = sub.add_parser("run", help="Run daily ingestion and draft generation")
     run_p.add_argument("--config", default="config/feeds.yaml", help="Path to feeds config YAML")
+    run_p.add_argument("--debug", action="store_true",
+                       help="Enable per-item debug logging for each pipeline stage")
+
+    notify_group = run_p.add_argument_group("Telegram notifications")
+    notify_group.add_argument("--notify", action="store_true",
+                              help="Send results to your phone via Telegram after the run")
+    mode = notify_group.add_mutually_exclusive_group()
+    mode.add_argument("--top", type=int, default=2, metavar="N",
+                      help="Send top N recommendations as a text message (default: 2)")
+    mode.add_argument("--pdf", action="store_true",
+                      help="Send all posts as a PDF instead of a text message")
+
+    serve_p = sub.add_parser("serve", help="Start Telegram bot — trigger runs by messaging the bot")
+    serve_p.add_argument("--config", default="config/feeds.yaml", help="Path to feeds config YAML")
+
     return parser
 
 
@@ -104,7 +138,17 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     if args.command == "run":
-        return run_command(args.config)
+        return run_command(
+            args.config,
+            debug=args.debug,
+            notify=args.notify,
+            top_n=args.top,
+            send_pdf=args.pdf,
+        )
+    if args.command == "serve":
+        setup_logging()
+        _bot_serve(config_path=args.config)
+        return 0
     return 1
 
 

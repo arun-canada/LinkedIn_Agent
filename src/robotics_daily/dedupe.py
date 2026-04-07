@@ -42,45 +42,50 @@ def content_hash(text: str) -> str:
 class CacheDB:
     def __init__(self, db_path: str | Path = "cache.db") -> None:
         self.db_path = str(db_path)
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(self.db_path)
         self._init_db()
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.db_path)
-
     def _init_db(self) -> None:
-        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS seen_sources (
-                    canonical_url TEXT,
-                    content_hash TEXT,
-                    seen_at TEXT NOT NULL
-                )
-                """
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS seen_sources (
+                canonical_url TEXT,
+                content_hash TEXT,
+                seen_at TEXT NOT NULL
             )
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_seen_url ON seen_sources(canonical_url)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_seen_hash ON seen_sources(content_hash)")
+            """
+        )
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_seen_url ON seen_sources(canonical_url)")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_seen_hash ON seen_sources(content_hash)")
+        self._conn.commit()
 
     def seen_recently(self, canonical_url: str, c_hash: str, days: int = 30) -> bool:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT 1
-                FROM seen_sources
-                WHERE (canonical_url = ? OR content_hash = ?)
-                  AND seen_at >= ?
-                LIMIT 1
-                """,
-                (canonical_url, c_hash, cutoff.isoformat()),
-            ).fetchone()
-        return rows is not None
+        row = self._conn.execute(
+            """
+            SELECT 1
+            FROM seen_sources
+            WHERE (canonical_url = ? OR content_hash = ?)
+              AND seen_at >= ?
+            LIMIT 1
+            """,
+            (canonical_url, c_hash, cutoff.isoformat()),
+        ).fetchone()
+        return row is not None
 
     def mark_seen(self, canonical_url: str, c_hash: str) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        with self._connect() as conn:
-            conn.execute(
-                "INSERT INTO seen_sources(canonical_url, content_hash, seen_at) VALUES (?, ?, ?)",
-                (canonical_url, c_hash, now),
-            )
+        self._conn.execute(
+            "INSERT INTO seen_sources(canonical_url, content_hash, seen_at) VALUES (?, ?, ?)",
+            (canonical_url, c_hash, now),
+        )
+        self._conn.commit()
+
+    def close(self) -> None:
+        if self._conn:
+            self._conn.close()
+            self._conn = None  # type: ignore[assignment]
+
+    def __del__(self) -> None:
+        self.close()

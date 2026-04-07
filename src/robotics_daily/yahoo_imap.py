@@ -15,8 +15,21 @@ from bs4 import BeautifulSoup
 
 from .config import NewsletterConfig
 from .models import SourceItem
+from .utils import JUNK_URL_RE as _JUNK_URL_RE
 
 logger = logging.getLogger(__name__)
+
+# Anchor text that indicates navigation/admin links, not article links
+_JUNK_ANCHOR_RE = re.compile(
+    r"^(privacy(\s+policy)?|unsubscribe|opt\s*out|terms(\s+of\s+(service|use))?|"
+    r"view\s+(in\s+browser|online|email|this\s+email)|email\s+preferences|"
+    r"manage\s+preferences|update\s+preferences|forward\s+to\s+a\s+friend|"
+    r"contact\s+us|click\s+here\s+to\s+unsubscribe|advertise)$",
+    re.IGNORECASE,
+)
+
+# Inline URL pattern — used to strip raw URLs from plain-text excerpts
+_URL_IN_TEXT_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
 
 def _decode_header(value: str) -> str:
@@ -91,29 +104,49 @@ def _subject_match(subject: str, keywords: list[str]) -> bool:
     return any(k.lower() in sub for k in keywords)
 
 
-def _extract_links(html: str) -> list[str]:
+def _is_junk_url(url: str) -> bool:
+    return bool(_JUNK_URL_RE.search(url))
+
+
+def _extract_links(html: str) -> list[tuple[str, str]]:
+    """Return (url, anchor_text) pairs from newsletter HTML. Junk links excluded."""
     if not html.strip():
         return []
     soup = BeautifulSoup(html, "html.parser")
-    links: list[str] = []
+    links: list[tuple[str, str]] = []
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
+        anchor_text = a.get_text(strip=True)
+        if _JUNK_ANCHOR_RE.match(anchor_text):
+            logger.debug("Skipping junk anchor '%s': %s", anchor_text, href)
+            continue
         if href.startswith("http://") or href.startswith("https://"):
-            links.append(href)
+            if _is_junk_url(href):
+                logger.debug("Skipping junk URL: %s", href)
+                continue
+            links.append((href, anchor_text))
         elif href.startswith("/"):
-            links.append(urljoin("https://", href))
-    seen = set()
-    deduped = []
-    for l in links:
-        if l not in seen:
-            deduped.append(l)
-            seen.add(l)
+            full = urljoin("https://", href)
+            if not _is_junk_url(full):
+                links.append((full, anchor_text))
+    seen: set[str] = set()
+    deduped: list[tuple[str, str]] = []
+    for url, text in links:
+        if url not in seen:
+            deduped.append((url, text))
+            seen.add(url)
     return deduped
+
+
+def _clean_excerpt(text: str) -> str:
+    """Strip inline URLs and collapse whitespace in a plain-text excerpt."""
+    cleaned = _URL_IN_TEXT_RE.sub("", text)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def fetch_newsletter_links(config: NewsletterConfig, email_addr: str, app_password: str) -> list[SourceItem]:
     items: list[SourceItem] = []
-    since = (datetime.utcnow() - timedelta(days=config.days_back)).strftime("%d-%b-%Y")
+    since = (datetime.now(timezone.utc) - timedelta(days=config.days_back)).strftime("%d-%b-%Y")
 
     with imaplib.IMAP4_SSL(config.imap_host, config.imap_port) as imap:
         imap.login(email_addr, app_password)
@@ -131,20 +164,27 @@ def fetch_newsletter_links(config: NewsletterConfig, email_addr: str, app_passwo
             msg = email.message_from_bytes(raw)
             subject = _decode_header(msg.get("Subject", "(no subject)"))
             sender = _decode_header(msg.get("From", "Unknown sender"))
-            if not _sender_allowed(sender, config.from_allowlist):
+            sender_ok = _sender_allowed(sender, config.from_allowlist)
+            subject_ok = _subject_match(subject, config.subject_keywords)
+            # Trusted senders (explicitly allowlisted) bypass the subject filter
+            # Unknown senders must match subject keywords to be included
+            if not sender_ok and not subject_ok:
                 continue
-            if not _subject_match(subject, config.subject_keywords):
+            if not sender_ok:
                 continue
             published = _parse_date(msg.get("Date"))
             text, html = _extract_html_and_text(msg)
-            excerpt = (text or _strip_html(html))[:500]
+            raw_excerpt = (text or _strip_html(html))[:800]
+            excerpt = _clean_excerpt(raw_excerpt)
             links = _extract_links(html)
-            for link in links[:5]:
+            for link, anchor_text in links[:10]:
+                # Use the anchor text (article headline) when present; fall back to email subject
+                title = anchor_text if len(anchor_text) > 10 else subject
                 item_id = hashlib.sha256(f"mail:{message_id.decode()}:{link}".encode("utf-8")).hexdigest()
                 items.append(
                     SourceItem(
                         id=item_id,
-                        title=subject,
+                        title=title,
                         url=link,
                         published_at=published,
                         source_type="newsletter_link",

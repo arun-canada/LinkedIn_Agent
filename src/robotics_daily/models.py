@@ -6,6 +6,7 @@ from typing import Literal
 
 
 SourceType = Literal["rss", "newsletter_link"]
+QualityFlag = Literal["publish", "review", "skip"]
 
 
 @dataclass
@@ -20,10 +21,14 @@ class SourceItem:
     score: float = 0.0
     summary_bullets: list[str] = field(default_factory=list)
     why_it_matters: str = ""
+    reflection: str = ""
 
 
 @dataclass
-class PostDraftBundle:
-    generated_at: datetime
-    posts_markdown: str
-    sources_used: list[SourceItem]
+class PostRecommendation:
+    item_title: str
+    item_url: str
+    item_score: float
+    quality_flag: QualityFlag  # "publish" | "review" | "skip"
+    reason: str                # one-liner explanation for the recommendations table
+    post_index: int            # 1-based index into posts_markdown drafts
